@@ -1210,24 +1210,24 @@ services:
   #   volumes:
   #     - appwrite-uploads:/storage/uploads
 
-  networks:
-    gateway:
-      name: gateway
-    appwrite:
-      name: appwrite
-    runtimes:
-      name: runtimes
+networks:
+  gateway:
+    name: gateway
+  appwrite:
+    name: appwrite
+  runtimes:
+    name: runtimes
 
-  volumes:
-    appwrite-mariadb:
-    appwrite-mongodb:
-    appwrite-mongodb-keyfile:
-    appwrite-redis:
-    appwrite-cache:
-    appwrite-uploads:
-    appwrite-imports:
-    appwrite-certificates:
-    appwrite-functions:
-    appwrite-sites:
-    appwrite-builds:
-    appwrite-config:
+volumes:
+  appwrite-mariadb:
+  appwrite-mongodb:
+  appwrite-mongodb-keyfile:
+  appwrite-redis:
+  appwrite-cache:
+  appwrite-uploads:
+  appwrite-imports:
+  appwrite-certificates:
+  appwrite-functions:
+  appwrite-sites:
+  appwrite-builds:
+  appwrite-config:

@@ -1098,8 +1098,6 @@ services:
       - appwrite-builds:/storage/builds:rw
       - appwrite-functions:/storage/functions:rw
       - appwrite-sites:/storage/sites:rw
-      # Host mount necessary to share files between executor and runtimes.
-      # It's not possible to share mount file between 2 containers without host mount (copying is too slow)
       - /tmp:/tmp:rw
     environment:
       - OPR_EXECUTOR_CONNECTION_STORAGE=local://localhost
@@ -1126,10 +1124,10 @@ services:
       - OPR_EXECUTOR_STORAGE_DO_SPACES_SECRET=$_APP_STORAGE_DO_SPACES_SECRET
       - OPR_EXECUTOR_STORAGE_DO_SPACES_REGION=$_APP_STORAGE_DO_SPACES_REGION
       - OPR_EXECUTOR_STORAGE_DO_SPACES_BUCKET=$_APP_STORAGE_DO_SPACES_BUCKET
-      - OPR_EXECUTOR_STORAGE_BACKBLAZE_BUCKET=$_APP_STORAGE_BACKBLAZE_BUCKET
       - OPR_EXECUTOR_STORAGE_BACKBLAZE_ACCESS_KEY=$_APP_STORAGE_BACKBLAZE_ACCESS_KEY
       - OPR_EXECUTOR_STORAGE_BACKBLAZE_SECRET=$_APP_STORAGE_BACKBLAZE_SECRET
       - OPR_EXECUTOR_STORAGE_BACKBLAZE_REGION=$_APP_STORAGE_BACKBLAZE_REGION
+      - OPR_EXECUTOR_STORAGE_BACKBLAZE_BUCKET=$_APP_STORAGE_BACKBLAZE_BUCKET
       - OPR_EXECUTOR_STORAGE_LINODE_ACCESS_KEY=$_APP_STORAGE_LINODE_ACCESS_KEY
       - OPR_EXECUTOR_STORAGE_LINODE_SECRET=$_APP_STORAGE_LINODE_SECRET
       - OPR_EXECUTOR_STORAGE_LINODE_REGION=$_APP_STORAGE_LINODE_REGION
@@ -1138,14 +1136,6 @@ services:
       - OPR_EXECUTOR_STORAGE_WASABI_SECRET=$_APP_STORAGE_WASABI_SECRET
       - OPR_EXECUTOR_STORAGE_WASABI_REGION=$_APP_STORAGE_WASABI_REGION
       - OPR_EXECUTOR_STORAGE_WASABI_BUCKET=$_APP_STORAGE_WASABI_BUCKET
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - 'curl -fsS -H "Authorization: Bearer $$OPR_EXECUTOR_SECRET" http://localhost/v1/health >/dev/null'
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 5s
 
   mongodb:
     image: mongo:8.2.5
@@ -1221,12 +1211,12 @@ services:
   #     - appwrite-uploads:/storage/uploads
 
   networks:
-  gateway:
-    name: gateway
-  appwrite:
-    name: appwrite
-  runtimes:
-    name: runtimes
+    gateway:
+      name: gateway
+    appwrite:
+      name: appwrite
+    runtimes:
+      name: runtimes
 
   volumes:
     appwrite-mariadb:

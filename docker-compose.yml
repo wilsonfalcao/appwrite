@@ -19,7 +19,7 @@ services:
       - --entrypoints.appwrite_websecure.address=:443
     restart: unless-stopped
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - appwrite-config:/storage/config:ro
       - appwrite-certificates:/storage/certificates:ro
     depends_on:

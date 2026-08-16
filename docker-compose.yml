@@ -4,6 +4,7 @@ x-logging: &x-logging
     options:
       max-file: "5"
       max-size: "10m"
+
 services:
   traefik:
     image: traefik:3.6
@@ -68,6 +69,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_EDITION
@@ -202,6 +205,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.constraint-label-stack=appwrite"
+    networks:
+      - appwrite
 
   appwrite-realtime:
     image: appwrite/appwrite:1.9.5
@@ -214,6 +219,8 @@ services:
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -250,6 +257,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -278,6 +287,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -308,6 +319,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     volumes:
       - appwrite-uploads:/storage/uploads:rw
       - appwrite-cache:/storage/cache:rw
@@ -370,6 +383,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -405,6 +420,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     volumes:
       - appwrite-functions:/storage/functions:rw
       - appwrite-sites:/storage/sites:rw
@@ -479,6 +496,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     volumes:
       - appwrite-uploads:/storage/uploads:rw
     environment:
@@ -536,6 +555,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     volumes:
       - appwrite-config:/storage/config:rw
       - appwrite-certificates:/storage/certificates:rw
@@ -576,6 +597,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -605,6 +628,8 @@ services:
       - ${_APP_DB_HOST:-mongodb}
       - redis
       - openruntimes-executor
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -645,6 +670,8 @@ services:
     restart: unless-stopped
     depends_on:
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -683,6 +710,8 @@ services:
       - appwrite-uploads:/storage/uploads:rw
     depends_on:
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -738,6 +767,8 @@ services:
       - appwrite-uploads:/storage/uploads:rw
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -777,6 +808,8 @@ services:
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -818,6 +851,8 @@ services:
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -853,6 +888,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -881,6 +918,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -911,6 +950,8 @@ services:
     depends_on:
       - redis
       - ${_APP_DB_HOST:-mongodb}
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -941,6 +982,8 @@ services:
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -973,6 +1016,8 @@ services:
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -1005,6 +1050,8 @@ services:
     depends_on:
       - ${_APP_DB_HOST:-mongodb}
       - redis
+    networks:
+      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -1026,6 +1073,8 @@ services:
     image: appwrite/assistant:0.8.4
     <<: *x-logging
     restart: unless-stopped
+    networks:
+      - appwrite
     environment:
       - _APP_ASSISTANT_OPENAI_API_KEY
 
@@ -1033,6 +1082,8 @@ services:
     image: appwrite/browser:0.3.2
     <<: *x-logging
     restart: unless-stopped
+    networks:
+      - appwrite
 
   openruntimes-executor:
     hostname: openruntimes-executor
@@ -1040,6 +1091,8 @@ services:
     restart: unless-stopped
     stop_signal: SIGINT
     image: openruntimes/executor:0.25.1
+    networks:
+      - appwrite
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - appwrite-builds:/storage/builds:rw
@@ -1073,10 +1126,10 @@ services:
       - OPR_EXECUTOR_STORAGE_DO_SPACES_SECRET=$_APP_STORAGE_DO_SPACES_SECRET
       - OPR_EXECUTOR_STORAGE_DO_SPACES_REGION=$_APP_STORAGE_DO_SPACES_REGION
       - OPR_EXECUTOR_STORAGE_DO_SPACES_BUCKET=$_APP_STORAGE_DO_SPACES_BUCKET
+      - OPR_EXECUTOR_STORAGE_BACKBLAZE_BUCKET=$_APP_STORAGE_BACKBLAZE_BUCKET
       - OPR_EXECUTOR_STORAGE_BACKBLAZE_ACCESS_KEY=$_APP_STORAGE_BACKBLAZE_ACCESS_KEY
       - OPR_EXECUTOR_STORAGE_BACKBLAZE_SECRET=$_APP_STORAGE_BACKBLAZE_SECRET
       - OPR_EXECUTOR_STORAGE_BACKBLAZE_REGION=$_APP_STORAGE_BACKBLAZE_REGION
-      - OPR_EXECUTOR_STORAGE_BACKBLAZE_BUCKET=$_APP_STORAGE_BACKBLAZE_BUCKET
       - OPR_EXECUTOR_STORAGE_LINODE_ACCESS_KEY=$_APP_STORAGE_LINODE_ACCESS_KEY
       - OPR_EXECUTOR_STORAGE_LINODE_SECRET=$_APP_STORAGE_LINODE_SECRET
       - OPR_EXECUTOR_STORAGE_LINODE_REGION=$_APP_STORAGE_LINODE_REGION
@@ -1167,16 +1220,24 @@ services:
   #   volumes:
   #     - appwrite-uploads:/storage/uploads
 
-volumes:
-  appwrite-mariadb:
-  appwrite-mongodb:
-  appwrite-mongodb-keyfile:
-  appwrite-redis:
-  appwrite-cache:
-  appwrite-uploads:
-  appwrite-imports:
-  appwrite-certificates:
-  appwrite-functions:
-  appwrite-sites:
-  appwrite-builds:
-  appwrite-config:
+  networks:
+  gateway:
+    name: gateway
+  appwrite:
+    name: appwrite
+  runtimes:
+    name: runtimes
+
+  volumes:
+    appwrite-mariadb:
+    appwrite-mongodb:
+    appwrite-mongodb-keyfile:
+    appwrite-redis:
+    appwrite-cache:
+    appwrite-uploads:
+    appwrite-imports:
+    appwrite-certificates:
+    appwrite-functions:
+    appwrite-sites:
+    appwrite-builds:
+    appwrite-config:

@@ -1,9 +1,9 @@
 x-logging: &x-logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-file: "5"
-      max-size: "10m"
+      max-file: '5'
+      max-size: '10m'
 
 services:
   traefik:
@@ -27,36 +27,27 @@ services:
     networks:
       - gateway
       - appwrite
-      
+
   appwrite:
     image: appwrite/appwrite:1.9.5
     <<: *x-logging
     restart: unless-stopped
+    networks:
+      - appwrite
     labels:
       - traefik.enable=true
       - traefik.constraint-label-stack=appwrite
-      - 'traefik.http.routers.appwrite-sites-wildcard.rule=HostRegexp(`^.+\.${_APP_DOMAIN_SITES}$$`)'
-      - traefik.http.routers.appwrite-sites-wildcard.entrypoints=web
-      - traefik.http.routers.appwrite-sites-wildcard.service=appwrite-wildcard
-      - 'traefik.http.routers.appwrite-sites-wildcard-secure.rule=HostRegexp(`^.+\.${_APP_DOMAIN_SITES}$$`)'
-      - traefik.http.routers.appwrite-sites-wildcard-secure.entrypoints=websecure
-      - traefik.http.routers.appwrite-sites-wildcard-secure.tls=true
-      - traefik.http.routers.appwrite-sites-wildcard-secure.service=appwrite-wildcard
-      - 'traefik.http.routers.appwrite-functions-wildcard.rule=HostRegexp(`^.+\.${_APP_DOMAIN_FUNCTIONS}$$`)'
-      - traefik.http.routers.appwrite-functions-wildcard.entrypoints=web
-      - traefik.http.routers.appwrite-functions-wildcard.service=appwrite-wildcard
-      - 'traefik.http.routers.appwrite-functions-wildcard-secure.rule=HostRegexp(`^.+\.${_APP_DOMAIN_FUNCTIONS}$$`)'
-      - traefik.http.routers.appwrite-functions-wildcard-secure.entrypoints=websecure
-      - traefik.http.routers.appwrite-functions-wildcard-secure.tls=true
-      - traefik.http.routers.appwrite-functions-wildcard-secure.service=appwrite-wildcard
-      - traefik.http.services.appwrite-wildcard.loadbalancer.server.port=80
-    healthcheck:
-      test:
-        - CMD
-        - doctor
-      interval: 5s
-      timeout: 5s
-      retries: 12
+      - traefik.docker.network=appwrite
+      - traefik.http.services.appwrite_api.loadbalancer.server.port=80
+      # http
+      - traefik.http.routers.appwrite_api_http.entrypoints=appwrite_web
+      - traefik.http.routers.appwrite_api_http.rule=PathPrefix(`/`)
+      - traefik.http.routers.appwrite_api_http.service=appwrite_api
+      # https
+      - traefik.http.routers.appwrite_api_https.entrypoints=appwrite_websecure
+      - traefik.http.routers.appwrite_api_https.rule=PathPrefix(`/`)
+      - traefik.http.routers.appwrite_api_https.service=appwrite_api
+      - traefik.http.routers.appwrite_api_https.tls=true
     volumes:
       - appwrite-uploads:/storage/uploads:rw
       - appwrite-imports:/storage/imports:rw
@@ -67,10 +58,8 @@ services:
       - appwrite-sites:/storage/sites:rw
       - appwrite-builds:/storage/builds:rw
     depends_on:
+      - mariadb
       - redis
-      - ${_APP_DB_HOST:-mongodb}
-    networks:
-      - appwrite
     environment:
       - _APP_ENV
       - _APP_EDITION
@@ -108,18 +97,12 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
       - _APP_DB_USER
       - _APP_DB_PASS
-      - _APP_DB_ADAPTER_VECTORSDB
-      - _APP_DB_HOST_VECTORSDB
-      - _APP_DB_PORT_VECTORSDB
-      - _APP_DB_SCHEMA_VECTORSDB
-      - _APP_DB_USER_VECTORSDB
-      - _APP_DB_PASS_VECTORSDB
       - _APP_SMTP_HOST
       - _APP_SMTP_PORT
       - _APP_SMTP_SECURE
@@ -202,11 +185,22 @@ services:
     <<: *x-logging
     image: appwrite/console:8.7.5
     restart: unless-stopped
+    networks:
+      - appwrite
     labels:
       - "traefik.enable=true"
       - "traefik.constraint-label-stack=appwrite"
-    networks:
-      - appwrite
+      - "traefik.docker.network=appwrite"
+      - "traefik.http.services.appwrite_console.loadbalancer.server.port=80"
+      # ws
+      - traefik.http.routers.appwrite_console_http.entrypoints=appwrite_web
+      - traefik.http.routers.appwrite_console_http.rule=PathPrefix(`/console`)
+      - traefik.http.routers.appwrite_console_http.service=appwrite_console
+      # wss
+      - traefik.http.routers.appwrite_console_https.entrypoints=appwrite_websecure
+      - traefik.http.routers.appwrite_console_https.rule=PathPrefix(`/console`)
+      - traefik.http.routers.appwrite_console_https.service=appwrite_console
+      - traefik.http.routers.appwrite_console_https.tls=true
 
   appwrite-realtime:
     image: appwrite/appwrite:1.9.5
@@ -216,11 +210,22 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.constraint-label-stack=appwrite"
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
+      - "traefik.docker.network=appwrite"
+      - "traefik.http.services.appwrite_realtime.loadbalancer.server.port=80"
+      # ws
+      - traefik.http.routers.appwrite_realtime_ws.entrypoints=appwrite_web
+      - traefik.http.routers.appwrite_realtime_ws.rule=PathPrefix(`/v1/realtime`)
+      - traefik.http.routers.appwrite_realtime_ws.service=appwrite_realtime
+      # wss
+      - traefik.http.routers.appwrite_realtime_wss.entrypoints=appwrite_websecure
+      - traefik.http.routers.appwrite_realtime_wss.rule=PathPrefix(`/v1/realtime`)
+      - traefik.http.routers.appwrite_realtime_wss.service=appwrite_realtime
+      - traefik.http.routers.appwrite_realtime_wss.tls=true
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -231,18 +236,12 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
       - _APP_DB_USER
       - _APP_DB_PASS
-      - _APP_DB_ADAPTER_VECTORSDB
-      - _APP_DB_HOST_VECTORSDB
-      - _APP_DB_PORT_VECTORSDB
-      - _APP_DB_SCHEMA_VECTORSDB
-      - _APP_DB_USER_VECTORSDB
-      - _APP_DB_PASS_VECTORSDB
       - _APP_USAGE_STATS
       - _APP_LOGGING_CONFIG
       - _APP_LOGGING_CONFIG_REALTIME
@@ -254,11 +253,11 @@ services:
     entrypoint: worker-audits
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -270,7 +269,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -284,11 +283,11 @@ services:
     entrypoint: worker-webhooks
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -297,7 +296,7 @@ services:
       - _APP_POOL_ADAPTER
       - _APP_OPENSSL_KEY_V1
       - _APP_EMAIL_SECURITY
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -316,11 +315,11 @@ services:
     entrypoint: worker-deletes
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     volumes:
       - appwrite-uploads:/storage/uploads:rw
       - appwrite-cache:/storage/cache:rw
@@ -339,7 +338,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -380,11 +379,11 @@ services:
     entrypoint: worker-databases
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -396,20 +395,13 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
       - _APP_DB_USER
       - _APP_DB_PASS
-      - _APP_DB_ADAPTER_VECTORSDB
-      - _APP_DB_HOST_VECTORSDB
-      - _APP_DB_PORT_VECTORSDB
-      - _APP_DB_SCHEMA_VECTORSDB
-      - _APP_DB_USER_VECTORSDB
-      - _APP_DB_PASS_VECTORSDB
       - _APP_LOGGING_CONFIG
-      - _APP_QUEUE_NAME
       - _APP_DATABASE_SHARED_TABLES
 
   appwrite-worker-builds:
@@ -417,11 +409,11 @@ services:
     entrypoint: worker-builds
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     volumes:
       - appwrite-functions:/storage/functions:rw
       - appwrite-sites:/storage/sites:rw
@@ -439,7 +431,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -485,78 +477,17 @@ services:
       - _APP_STORAGE_WASABI_BUCKET
       - _APP_DATABASE_SHARED_TABLES
       - _APP_DOMAIN_SITES
-    extra_hosts:
-      - host.docker.internal:host-gateway
-
-  appwrite-worker-screenshots:
-    image: appwrite/appwrite:1.9.5
-    entrypoint: worker-screenshots
-    <<: *x-logging
-    restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
-    networks:
-      - appwrite
-    volumes:
-      - appwrite-uploads:/storage/uploads:rw
-    environment:
-      - _APP_BROWSER_HOST
-      - _APP_WORKER_SCREENSHOTS_ROUTER
-      - _APP_OPTIONS_FORCE_HTTPS
-      - _APP_ENV
-      - _APP_WORKERS_NUM=1
-      - _APP_WORKER_MAX_COROUTINES=8
-      - _APP_WORKER_PER_CORE
-      - _APP_POOL_ADAPTER
-      - _APP_LOGGING_CONFIG
-      - _APP_OPENSSL_KEY_V1
-      - _APP_REDIS_HOST
-      - _APP_REDIS_PORT
-      - _APP_REDIS_USER
-      - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
-      - _APP_DB_HOST
-      - _APP_DB_PORT
-      - _APP_DB_SCHEMA
-      - _APP_DB_USER
-      - _APP_DB_PASS
-      - _APP_DATABASE_SHARED_TABLES
-      - _APP_STORAGE_DEVICE
-      - _APP_STORAGE_S3_ACCESS_KEY
-      - _APP_STORAGE_S3_SECRET
-      - _APP_STORAGE_S3_REGION
-      - _APP_STORAGE_S3_BUCKET
-      - _APP_STORAGE_S3_ENDPOINT
-      - _APP_STORAGE_DO_SPACES_ACCESS_KEY
-      - _APP_STORAGE_DO_SPACES_SECRET
-      - _APP_STORAGE_DO_SPACES_REGION
-      - _APP_STORAGE_DO_SPACES_BUCKET
-      - _APP_STORAGE_BACKBLAZE_ACCESS_KEY
-      - _APP_STORAGE_BACKBLAZE_SECRET
-      - _APP_STORAGE_BACKBLAZE_REGION
-      - _APP_STORAGE_BACKBLAZE_BUCKET
-      - _APP_STORAGE_LINODE_ACCESS_KEY
-      - _APP_STORAGE_LINODE_SECRET
-      - _APP_STORAGE_LINODE_REGION
-      - _APP_STORAGE_LINODE_BUCKET
-      - _APP_STORAGE_WASABI_ACCESS_KEY
-      - _APP_STORAGE_WASABI_SECRET
-      - _APP_STORAGE_WASABI_REGION
-      - _APP_STORAGE_WASABI_BUCKET
-    extra_hosts:
-      - host.docker.internal:host-gateway
 
   appwrite-worker-certificates:
     image: appwrite/appwrite:1.9.5
     entrypoint: worker-certificates
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     volumes:
       - appwrite-config:/storage/config:rw
       - appwrite-certificates:/storage/certificates:rw
@@ -580,7 +511,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -594,11 +525,11 @@ services:
     entrypoint: worker-executions
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -610,7 +541,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -624,12 +555,12 @@ services:
     entrypoint: worker-functions
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
-      - openruntimes-executor
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
+      - openruntimes-executor
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -643,7 +574,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -668,10 +599,10 @@ services:
     entrypoint: worker-mails
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
     networks:
       - appwrite
+    depends_on:
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -690,7 +621,7 @@ services:
       - _APP_DB_SCHEMA
       - _APP_DB_USER
       - _APP_DB_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_SMTP_HOST
       - _APP_SMTP_PORT
       - _APP_SMTP_SECURE
@@ -706,12 +637,12 @@ services:
     entrypoint: worker-messaging
     <<: *x-logging
     restart: unless-stopped
+    networks:
+      - appwrite
     volumes:
       - appwrite-uploads:/storage/uploads:rw
     depends_on:
       - redis
-    networks:
-      - appwrite
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -723,7 +654,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -732,7 +663,6 @@ services:
       - _APP_LOGGING_CONFIG
       - _APP_SMS_FROM
       - _APP_SMS_PROVIDER
-      - _APP_SMS_PROJECTS_DENY_LIST
       - _APP_STORAGE_DEVICE
       - _APP_STORAGE_S3_ACCESS_KEY
       - _APP_STORAGE_S3_SECRET
@@ -762,13 +692,13 @@ services:
     entrypoint: worker-migrations
     <<: *x-logging
     restart: unless-stopped
+    networks:
+      - appwrite
     volumes:
       - appwrite-imports:/storage/imports:rw
       - appwrite-uploads:/storage/uploads:rw
     depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-    networks:
-      - appwrite
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -787,7 +717,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -805,11 +735,11 @@ services:
     entrypoint: maintenance
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -826,7 +756,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -848,11 +778,11 @@ services:
     entrypoint: interval
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -870,7 +800,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -885,17 +815,17 @@ services:
     entrypoint: stats-resources
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
       - _APP_POOL_ADAPTER
       - _APP_OPENSSL_KEY_V1
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -915,11 +845,11 @@ services:
     entrypoint: worker-stats-resources
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -927,7 +857,7 @@ services:
       - _APP_WORKER_PER_CORE
       - _APP_POOL_ADAPTER
       - _APP_OPENSSL_KEY_V1
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -947,11 +877,11 @@ services:
     entrypoint: worker-stats-usage
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - redis
-      - ${_APP_DB_HOST:-mongodb}
     networks:
       - appwrite
+    depends_on:
+      - redis
+      - mariadb
     environment:
       - _APP_ENV
       - _APP_WORKERS_NUM=1
@@ -959,7 +889,7 @@ services:
       - _APP_WORKER_PER_CORE
       - _APP_POOL_ADAPTER
       - _APP_OPENSSL_KEY_V1
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -979,11 +909,11 @@ services:
     entrypoint: schedule-functions
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -1000,7 +930,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -1013,11 +943,11 @@ services:
     entrypoint: schedule-executions
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -1034,7 +964,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -1047,11 +977,11 @@ services:
     entrypoint: schedule-messages
     <<: *x-logging
     restart: unless-stopped
-    depends_on:
-      - ${_APP_DB_HOST:-mongodb}
-      - redis
     networks:
       - appwrite
+    depends_on:
+      - mariadb
+      - redis
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
@@ -1061,7 +991,7 @@ services:
       - _APP_REDIS_PORT
       - _APP_REDIS_USER
       - _APP_REDIS_PASS
-      - _APP_DB_ADAPTER
+      - _APP_DB_ADAPTER=mariadb
       - _APP_DB_HOST
       - _APP_DB_PORT
       - _APP_DB_SCHEMA
@@ -1077,13 +1007,6 @@ services:
       - appwrite
     environment:
       - _APP_ASSISTANT_OPENAI_API_KEY
-
-  appwrite-browser:
-    image: appwrite/browser:0.3.2
-    <<: *x-logging
-    restart: unless-stopped
-    networks:
-      - appwrite
 
   openruntimes-executor:
     hostname: openruntimes-executor
@@ -1137,51 +1060,12 @@ services:
       - OPR_EXECUTOR_STORAGE_WASABI_REGION=$_APP_STORAGE_WASABI_REGION
       - OPR_EXECUTOR_STORAGE_WASABI_BUCKET=$_APP_STORAGE_WASABI_BUCKET
 
-  mongodb:
-    image: mongo:8.2.5
-    <<: *x-logging
-    restart: unless-stopped
-    volumes:
-      - appwrite-mongodb:/data/db
-      - appwrite-mongodb-keyfile:/data/keyfile
-      - ../files/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-      - ../files/mongo-entrypoint.sh:/mongo-entrypoint.sh:ro
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=${_APP_DB_ROOT_PASS}
-      - MONGO_INITDB_DATABASE=${_APP_DB_SCHEMA}
-      - MONGO_INITDB_USERNAME=${_APP_DB_USER}
-      - MONGO_INITDB_PASSWORD=${_APP_DB_PASS}
-    entrypoint:
-      - /bin/bash
-      - /mongo-entrypoint.sh
-    healthcheck:
-      test: |
-        bash -c "
-          mongosh -u root -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --quiet --eval \"
-            try {
-              const hello = db.adminCommand({hello: 1});
-              if (hello.isWritablePrimary) {
-                quit(0);
-              }
-            } catch (e) {}
-
-            try {
-              rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]});
-            } catch (e) {}
-
-            quit(1);
-          \" 2>/dev/null
-        "
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-
   mariadb:
-    image: mariadb:10.11 # fix issues when upgrading using: mysql_upgrade -u root -p
+    image: mariadb:10.11
     <<: *x-logging
     restart: unless-stopped
+    networks:
+      - appwrite
     volumes:
       - appwrite-mariadb:/var/lib/mysql:rw
     environment:
@@ -1190,25 +1074,19 @@ services:
       - MYSQL_USER=${_APP_DB_USER}
       - MYSQL_PASSWORD=${_APP_DB_PASS}
       - MARIADB_AUTO_UPGRADE=1
-    command: "mysqld --innodb-flush-method=fsync"
+    command: 'mysqld --innodb-flush-method=fsync'
 
   redis:
     image: redis:7.4.7-alpine
     <<: *x-logging
     restart: unless-stopped
     command: >
-      redis-server
-      --maxmemory            512mb
-      --maxmemory-policy     allkeys-lru
-      --maxmemory-samples    5
+      redis-server --maxmemory            512mb
+      --maxmemory-policy     allkeys-lru --maxmemory-samples    5
+    networks:
+      - appwrite
     volumes:
       - appwrite-redis:/data:rw
-
-  # clamav:
-  #   image: appwrite/clamav:1.2.0
-  #   restart: unless-stopped
-  #   volumes:
-  #     - appwrite-uploads:/storage/uploads
 
 networks:
   gateway:
@@ -1220,8 +1098,6 @@ networks:
 
 volumes:
   appwrite-mariadb:
-  appwrite-mongodb:
-  appwrite-mongodb-keyfile:
   appwrite-redis:
   appwrite-cache:
   appwrite-uploads:

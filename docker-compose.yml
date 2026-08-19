@@ -1013,6 +1013,8 @@ services:
     stop_signal: SIGINT
     image: openruntimes/executor:0.25.4
     dns_search: [.]
+    privileged: true
+    user: root
     networks:
       - appwrite
       - runtimes

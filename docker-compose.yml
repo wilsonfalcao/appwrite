@@ -1011,14 +1011,11 @@ services:
     <<: *x-logging
     restart: unless-stopped
     stop_signal: SIGINT
-    image: openruntimes/executor:0.25.3
+    image: openruntimes/executor:0.25.4
     dns_search: [.]
     networks:
-      appwrite:
-        aliases:
-          - openruntimes-executor
-          - exc1
-      runtimes: {}
+      - appwrite
+      - runtimes
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - appwrite-builds:/storage/builds:rw

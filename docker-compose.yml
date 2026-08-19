@@ -1006,7 +1006,6 @@ services:
     networks:
       - appwrite
 
-  services:
   openruntimes-executor:
     image: openruntimes/executor:0.25.4
     privileged: true

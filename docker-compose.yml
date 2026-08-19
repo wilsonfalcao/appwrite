@@ -1007,6 +1007,7 @@ services:
       - appwrite
 
   openruntimes-executor:
+    container_name: exc1
     hostname: exc1
     <<: *x-logging
     restart: unless-stopped
@@ -1014,11 +1015,8 @@ services:
     image: openruntimes/executor:0.25.4
     dns_search: [.]
     networks:
-      appwrite:
-        aliases:
-          - openruntimes-executor
-          - exc1
-      runtimes: {}
+      - appwrite
+      - runtimes
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - appwrite-builds:/storage/builds:rw

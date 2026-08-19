@@ -1163,6 +1163,7 @@ networks:
   appwrite:
     name: appwrite
   runtimes:
+    external: true
     name: runtimes
 
 volumes:

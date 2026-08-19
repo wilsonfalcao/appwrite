@@ -1011,7 +1011,7 @@ services:
     <<: *x-logging
     restart: unless-stopped
     stop_signal: SIGINT
-    image: openruntimes/executor:0.25.4
+    image: openruntimes/executor:0.25.0
     dns_search: [.]
     networks:
       appwrite:
